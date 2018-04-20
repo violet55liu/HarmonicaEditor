@@ -1,0 +1,14 @@
+<RCC>
+  <qresource prefix="icon">
+    <file>icon.png</file>
+    <file>New.png</file>
+    <file>Open.png</file>
+    <file>Save.png</file>
+    <file>Exit.png</file>
+    <file>Redo.png</file>
+    <file>Undo.png</file>
+    <file>Up.png</file>
+    <file>Down.png</file>
+    <file>Change.png</file>
+  </qresource>
+</RCC>
