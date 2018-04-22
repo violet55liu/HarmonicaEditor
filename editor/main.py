@@ -56,11 +56,11 @@ class TextEdit(QMainWindow):
         redo_act.setShortcut('Ctrl+Alt+Z')
         redo_act.triggered.connect(self.redo_function)
 
-        up_act = QAction(QIcon(':icon/Up.png'), '升调', self)
+        up_act = QAction(QIcon(':icon/Up.png'), '升半度', self)
         up_act.setShortcut('Page Up')
         up_act.triggered.connect(self.up_function)
 
-        down_act = QAction(QIcon(':icon/Down.png'), '降调', self)
+        down_act = QAction(QIcon(':icon/Down.png'), '降半度', self)
         down_act.setShortcut('Page Down')
         down_act.triggered.connect(self.down_function)
 
@@ -154,7 +154,8 @@ class TextEdit(QMainWindow):
             n = old - new
             editor.change_tune(n)
         else:
-            QMessageBox.warning(self, "提示：", "未选择合适的曲调 ", QMessageBox.Cancel,
+            QMessageBox.warning(self, "提示：", "未选择合适的曲调 ",
+                                QMessageBox.Cancel,
                                 QMessageBox.Cancel)
 
     def tbs_function(self, state):
@@ -170,51 +171,81 @@ class TextEdit(QMainWindow):
             self.statusbar.hide()
 
     def up_function(self):
-        self.change_tune(-1)
+        self.change_tune(1)
 
     def down_function(self):
-        self.change_tune(1)
+        self.change_tune(-1)
 
     def change_tune(self, n):  # 转调函数  n个半度
         global keys
-        peice = self.text.toPlainText()
+        changeable_flag = True
+        piece = self.text.toPlainText()
         if n > 0:
-            limit_tune = keys[-n]
-            if limit_tune in peice:
-                n -= 12
+            for limit_tune in keys[-n:]:  # 判断是否含有转调后会超限的音符
+                if limit_tune in piece:
+                    n -= 12
+                    changeable_flag = True
+                    break
+            if n < 0:
+                for limit_tune in keys[:-n]:
+                    if limit_tune in piece:
+                        changeable_flag = False
+                        break
+
         else:
-            limit_tune = keys[-n - 1]
-            if limit_tune in peice:
-                n += 12
-        tmp_text = ''
-        i = 0
-        while i < len(peice):
-            # 获取音符
-            if peice[i] in ('{', '(', '[', '<'):
-                if peice[i + 1] == '#':
-                    tmp_char = peice[i:(i + 4)]
-                    i = i + 4
+            for limit_tune in keys[:-n]:
+                if limit_tune in piece:
+                    n += 12
+                    changeable_flag = True
+                    break
+            if n > 0:
+                for limit_tune in keys[-n:]:
+                    if limit_tune in piece:
+                        changeable_flag = False
+                        break
+        if not changeable_flag:
+            QMessageBox.warning(self, "提示：", "转调结果超出表示范围！",
+                                QMessageBox.Cancel,
+                                QMessageBox.Cancel)
+        else:
+            tmp_text = ''
+            i = 0
+            while i < len(piece):
+                # 获取音符
+                if piece[i] in ('{', '(', '[', '<'):
+                    if piece[i + 1] == '#':
+                        tmp_char = piece[i:(i + 4)]
+                        i = i + 4
+                    else:
+                        tmp_char = piece[i:(i + 3)]
+                        i = i + 3
+                elif piece[i] == '#':
+                    tmp_char = piece[i:(i + 2)]
+                    i = i + 2
                 else:
-                    tmp_char = peice[i:(i + 3)]
-                    i = i + 3
-            elif peice[i] == '#':
-                tmp_char = peice[i:(i + 2)]
-                i = i + 2
-            else:
-                tmp_char = peice[i]
-                i += 1
-            # 替换#3、#7为4、1
-            if ('#3' in tmp_char) or ('#7' in tmp_char):
-                tmp_char = tmp_char.replace('#', '')
-                tmp_char = keys[keys.index(tmp_char) + 1]
-            # 转调
-            if tmp_char in keys:
-                order = keys.index(tmp_char)
-                tmp_text += keys[order + n]
-            else:
-                tmp_text += tmp_char
-        self.text.selectAll()
-        self.text.insertPlainText(tmp_text)
+                    tmp_char = piece[i]
+                    i += 1
+                # 替换#3、#7为4、1
+                if ('#3' in tmp_char) or ('#7' in tmp_char):
+                    tmp_char = tmp_char.replace('#', '')
+                    tmp_char = keys[keys.index(tmp_char) + 1]
+                # 转调
+                try:
+                    if tmp_char in keys:
+                        order = (keys.index(tmp_char) + n)
+                        if order < 0:
+                            raise IndexError('IndexError')
+                        else:
+                            tmp_text += keys[order]
+                    else:
+                        tmp_text += tmp_char
+                except IndexError:
+                    # QMessageBox.warning(self, "提示：", "转调结果超出表示范围！",
+                    #                     QMessageBox.Cancel,
+                    #                     QMessageBox.Cancel)
+                    return 0
+            self.text.selectAll()
+            self.text.insertPlainText(tmp_text)
 
     def redo_function(self):
         self.text.redo()
